@@ -2,10 +2,10 @@ package beavergo
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego/logs"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -30,14 +30,15 @@ func (this *ChatClient) command(method string, url string, payload string) ([]by
 			return http.ErrUseLastResponse
 		},
 	}
-	logs.Error(payload)
+	
 	var req *http.Request
 	var err error
+	fullurl := this.Url + url
 	if payload == "" {
-		req, err = http.NewRequest(method, url, nil)
+		req, err = http.NewRequest(method, fullurl, nil)
 	} else {
 		payday := strings.NewReader(payload)
-		req, err = http.NewRequest(method, url, payday)
+		req, err = http.NewRequest(method, fullurl, payday)
 	}
 
 	if err != nil {
@@ -48,6 +49,10 @@ func (this *ChatClient) command(method string, url string, payload string) ([]by
 	req.Header.Add("X-AUTH-TOKEN", this.Token)
 
 	res, err := client.Do(req)
+	if (err != nil) {
+		log.Print(err)
+		return nil, err
+	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	return body, nil
@@ -57,6 +62,10 @@ func (this *ChatClient) HealthCheck() (*Status, error) {
 	method := "GET"
 	url := "/_healthcheck"
 	body, err := this.command(method, url, "")
+
+	if (err != nil) {
+		return nil, err
+	}
 	var status *Status
 	err = json.Unmarshal(body, &status)
 	if err != nil {
@@ -66,27 +75,27 @@ func (this *ChatClient) HealthCheck() (*Status, error) {
 	return status, nil
 }
 
-func (this *ChatClient) CreateConfig(appname string) (*http.ConnState, error) {
+func (this *ChatClient) CreateConfig(key string, value string) (bool, error) {
 	method := "POST"
 	url := "/api/config"
-	payload := "{\n	\"key\" : \"app_name\",\n	\"value\" : \"" + appname + "\"\n}"
+	payload := "{\n	\"key\" : \"" + key + "\",\n	\"value\" : \"" + value + "\"\n}"
 
-	body, err := this.command(method, url, payload)
+	_, err := this.command(method, url, payload)
 
-	var config *http.ConnState
-	err = json.Unmarshal(body, &config)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return config, nil
+	return true, nil
 }
 
-func (this *ChatClient) GetConfig(appname string) (*Config, error) {
+func (this *ChatClient) GetConfig(key string) (*Config, error) {
 	method := "GET"
 	url := "/api/config/"
 
-	body, err := this.command(method, url+appname, "")
+	body, err := this.command(method, url+key, "")
+	if (err != nil) {
+		return nil, err
+	}
 
 	var config *Config
 	err = json.Unmarshal(body, &config)
@@ -97,34 +106,28 @@ func (this *ChatClient) GetConfig(appname string) (*Config, error) {
 	return config, nil
 }
 
-func (this *ChatClient) UpdateConfig(appname string) (*http.ConnState, error) {
+func (this *ChatClient) UpdateConfig(value string) (bool, error) {
 	method := "PUT"
 	url := "/api/config/"
-	payload := "{\n	\"value\" : \"" + appname + "\"\n}"
-	body, err := this.command(method, url+appname, payload)
+	payload := "{\n	\"value\" : \"" + value + "\"\n}"
+	_, err := this.command(method, url+value, payload)
 
-	var config *http.ConnState
-	err = json.Unmarshal(body, &config)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return config, nil
+	return true, nil
 }
 
-func (this *ChatClient) DeleteConfig(appname string) (*http.ConnState, error) {
+func (this *ChatClient) DeleteConfig(key string) (bool, error) {
 	method := "DELETE"
 	url := "/api/config/"
 
-	body, err := this.command(method, url+appname, "")
+	_, err := this.command(method, url+key, "")
 
-	var config *http.ConnState
-	err = json.Unmarshal(body, &config)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return config, nil
+	return true, nil
 }
 
 func (this *ChatClient) GetChannel(channel string) (*Channel, error) {
@@ -133,6 +136,9 @@ func (this *ChatClient) GetChannel(channel string) (*Channel, error) {
 
 	body, err := this.command(method, url+channel, "")
 
+	if (err != nil) {
+		return nil, err
+	}
 	var chanresp *Channel
 	err = json.Unmarshal(body, &chanresp)
 	if err != nil {
@@ -142,91 +148,81 @@ func (this *ChatClient) GetChannel(channel string) (*Channel, error) {
 	return chanresp, nil
 }
 
-func (this *ChatClient) CreateChannel(channel string, ctype string) (*http.ConnState, error) {
+func (this *ChatClient) CreateChannel(channel string, ctype string) (bool, error) {
 	method := "POST"
 	url := "/api/channel"
-	payload := "{\n	\"name\" : \"" + channel + "\",\n	\"value\" : \"" + ctype + "\"\n}"
-	body, err := this.command(method, url, payload)
+	payload := "{\n	\"name\" : \"" + channel + "\",\n	\"type\" : \"" + ctype + "\"\n}"
+	_, err := this.command(method, url, payload)
 
-	var chanresp *http.ConnState
-	err = json.Unmarshal(body, &chanresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return chanresp, nil
+	return true, nil
 }
 
-func (this *ChatClient) UpdateChannel(channel string, ctype string) (*http.ConnState, error) {
+func (this *ChatClient) UpdateChannel(channel string, ctype string) (bool, error) {
 	method := "POST"
 	url := "/api/channel/"
 	payload := "{\n	\"type\" : \"" + ctype + "\"}"
-	body, err := this.command(method, url+channel, payload)
+	_, err := this.command(method, url+channel, payload)
 
-	var chanresp *http.ConnState
-	err = json.Unmarshal(body, &chanresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return chanresp, nil
+	return true, nil
 }
 
 // has to be json string
-func (this *ChatClient) PublishChannel(channel string, data string) (*http.ConnState, error) {
+func (this *ChatClient) PublishChannel(channel string, data string) (bool, error) {
 	method := "POST"
 	url := "/api/publish"
-	payload := "{\n	\"channel\" : \"" + channel + "\",\n	\"data\" : \"" + data + "\"\n}"
-	body, err := this.command(method, url, payload)
+	quoteddata := strconv.Quote(data)
+	payload := "{\n	\"channel\" : \"" + channel + "\",\n	\"data\" : " + quoteddata + "\n}"
+	_, err := this.command(method, url, payload)
 
-	var chanresp *http.ConnState
-	err = json.Unmarshal(body, &chanresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return chanresp, nil
+	return true, nil
 }
 
 // has to be json string
-func (this *ChatClient) BroadcastChannel(channels []string, data string) (*http.ConnState, error) {
+func (this *ChatClient) BroadcastChannel(channels []string, data string) (bool, error) {
 	method := "POST"
-	url := "/api/publish"
+	url := "/api/broadcast"
 	urlsJson, _ := json.Marshal(channels)
-	payload := "{\n	\"channels\" : \"" + string(urlsJson) + "\",\n	\"data\" : \"" + data + "\"\n}"
-	body, err := this.command(method, url, payload)
+	quoteddata := strconv.Quote(data)
+	payload := "{\n	\"channels\" : " + string(urlsJson) + ",\n	\"data\" : " + quoteddata + "\n}"
+	_, err := this.command(method, url, payload)
 
-	var chanresp *http.ConnState
-	err = json.Unmarshal(body, &chanresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return chanresp, nil
+	return true, nil
 }
 
-func (this *ChatClient) DeleteChannel(channel string) (*http.ConnState, error) {
+func (this *ChatClient) DeleteChannel(channel string) (bool, error) {
 	method := "DELETE"
 	url := "/api/channel/"
 
-	body, err := this.command(method, url+channel, "")
+	_, err := this.command(method, url+channel, "")
 
-	var chanresp *http.ConnState
-	err = json.Unmarshal(body, &chanresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return chanresp, nil
+	return true, nil
 }
 
 func (this *ChatClient) CreateClient(channel []string) (*ClientResp, error) {
 	method := "POST"
 	url := "/api/client"
 	urlsJson, _ := json.Marshal(channel)
-	payload := "{\n	\"channels\" : \"" + string(urlsJson) + "\"\n}"
+	payload := "{\n	\"channels\" : " + string(urlsJson) + "\n}"
 	body, err := this.command(method, url, payload)
 
+	if (err != nil) {
+		return nil, err
+	}
 	var clientresp *ClientResp
 	err = json.Unmarshal(body, &clientresp)
 	if err != nil {
@@ -236,12 +232,15 @@ func (this *ChatClient) CreateClient(channel []string) (*ClientResp, error) {
 	return clientresp, nil
 }
 
-func (this *ChatClient) GetClient(token string) (*ClientResp, error) {
+func (this *ChatClient) GetClient(id string) (*ClientResp, error) {
 	method := "GET"
 	url := "/api/client/"
 
-	body, err := this.command(method, url+token, "")
+	body, err := this.command(method, url+id, "")
 
+	if (err != nil) {
+		return nil, err
+	}
 	var clientresp *ClientResp
 	err = json.Unmarshal(body, &clientresp)
 	if err != nil {
@@ -251,76 +250,62 @@ func (this *ChatClient) GetClient(token string) (*ClientResp, error) {
 	return clientresp, nil
 }
 
-func (this *ChatClient) SubscribeClient(channel []string, token string) (*http.ConnState, error) {
-	method := "POST"
+func (this *ChatClient) SubscribeClient(channel []string, id string) (bool, error) {
+	method := "PUT"
 	url := "/api/client/"
 	urlsJson, _ := json.Marshal(channel)
-	payload := "{\n	\"type\" : \"" + string(urlsJson) + "\"}"
-	body, err := this.command(method, url+token+"/subscribe", payload)
 
-	var clientresp *http.ConnState
-	err = json.Unmarshal(body, &clientresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	payload := "{\n	\"channels\" : " + string(urlsJson) + "\n}"
+	_, err := this.command(method, url+id+"/subscribe", payload)
+
+	if (err != nil) {
+		return false, err
 	}
-	return clientresp, nil
+	return true, nil
 }
-func (this *ChatClient) UnsubscribeClient(channel []string, token string) (*http.ConnState, error) {
-	method := "POST"
+func (this *ChatClient) UnsubscribeClient(channel []string, id string) (bool, error) {
+	method := "PUT"
 	url := "/api/client/"
 	urlsJson, _ := json.Marshal(channel)
-	payload := "{\n	\"type\" : \"" + string(urlsJson) + "\"}"
-	body, err := this.command(method, url+token+"/unsubscribe", payload)
+	payload := "{\n	\"channels\" : " + string(urlsJson) + "\n}"
+	_, err := this.command(method, url+id+"/unsubscribe", payload)
 
-	var clientresp *http.ConnState
-	err = json.Unmarshal(body, &clientresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return clientresp, nil
+	return true, err
 }
 
-func (this *ChatClient) DeleteClient(token string) (*http.ConnState, error) {
+func (this *ChatClient) DeleteClient(id string) (bool, error) {
 	method := "DELETE"
 	url := "/api/client/"
 
-	body, err := this.command(method, url+token, "")
+	_, err := this.command(method, url+id, "")
 
-	var clientresp *http.ConnState
-	err = json.Unmarshal(body, &clientresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	if (err != nil) {
+		return false, err
 	}
-	return clientresp, nil
+	return true, nil
 }
 
 /* for future use */
-func (this *ChatClient) Metrics() (*http.ConnState, error) {
+func (this *ChatClient) Metrics() (bool, error) {
 	method := "GET"
 	url := "/api/metrics"
-	body, err := this.command(method, url, "")
-	var clientresp *http.ConnState
-	err = json.Unmarshal(body, &clientresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	_, err := this.command(method, url, "")
+	if (err != nil) {
+		return false, err
 	}
-	return clientresp, nil
+	return true, nil
 }
 
 /* for future use */
-func (this *ChatClient) Node() (*http.ConnState, error) {
+func (this *ChatClient) Node() (bool, error) {
 	method := "GET"
 	url := "/api/node"
-	body, err := this.command(method, url, "")
-	var clientresp *http.ConnState
-	err = json.Unmarshal(body, &clientresp)
-	if err != nil {
-		log.Print(err)
-		return nil, err
+	_, err := this.command(method, url, "")
+	if (err != nil) {
+		return false, err
 	}
-	return clientresp, nil
+	return true, nil
 }
