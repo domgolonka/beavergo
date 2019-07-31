@@ -2,6 +2,7 @@ package beavergo
 
 import (
 	"encoding/json"
+	"github.com/astaxie/beego/logs"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -29,6 +30,7 @@ func (this *ChatClient) command(method string, url string, payload string) ([]by
 			return http.ErrUseLastResponse
 		},
 	}
+	logs.Error(payload)
 	var req *http.Request
 	var err error
 	if payload == "" {
