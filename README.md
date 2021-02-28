@@ -1,15 +1,33 @@
-It's a Go client for Beaver
+<p align="center"> 
+  <img src="assets/logo.png" width="300" height="300" alt="Foretoken" /></p>
+  <h2 align="center">BeaverGo</h2>
+  <p align="center">A go client for Beaver https://github.com/Clivern/Beaver/</p>
 
-https://github.com/Clivern/Beaver/
+<p align="center">
+    <a href="https://github.com/domgolonka/beavergo/issues/new/choose">Report Bug</a>
+    ·
+    <a href="https://github.com/domgolonka/beavergo/issues/new/choose">Request Feature</a>
+</p>
 
 
+## About
+
+BeaverGo is a go client for Beaver https://github.com/Clivern/Beaver/
 
 # Usage
 
-#### Some of the commands are: 
+### Installation 
+
+It easy to use, all you need to do is import it in your project
+    
+    import "github.com/domgolonka/beavergo"
+    
+
+### Some of the commands are: 
 
 Token and url are in your beaver config. Make sure to include the protocol and port (if any).
 Example: `http://localhost:8080`
+
 
 `chat := NewConnect(token, url) `
 
