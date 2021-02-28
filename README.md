@@ -1,7 +1,7 @@
 <p align="center"> 
   <img src="assets/logo.png" width="300" height="300" alt="Foretoken" /></p>
   <h2 align="center">BeaverGo</h2>
-  <p align="center">A go client for Beaver https://github.com/Clivern/Beaver/</p>
+  <p align="center">A client for Beaver</p>
 
 <p align="center">
     <a href="https://github.com/domgolonka/beavergo/issues/new/choose">Report Bug</a>
