@@ -1,3 +1,3 @@
-module github.com/domgolonka/beavergo
+module github.com/go-base/beavergo
 
-go 1.15
+go 1.17
