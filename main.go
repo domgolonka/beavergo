@@ -60,7 +60,7 @@ func (c *ChatClient) command(method string, url string, payload string) ([]byte,
 
 func (c *ChatClient) HealthCheck() (*Status, error) {
 	method := "GET"
-	url := "/_healthcheck"
+	url := "/_health"
 	body, err := c.command(method, url, "")
 
 	if err != nil {
